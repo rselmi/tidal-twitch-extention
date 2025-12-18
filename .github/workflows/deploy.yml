@@ -3,12 +3,18 @@ name: Deploy Extension to GitHub Pages
 on:
   push:
     branches:
-      - main  # O deploy acontece toda vez que você der push na branch main
+      - main
+  workflow_dispatch: # Permite rodar o teste manualmente
 
 permissions:
   contents: read
   pages: write
   id-token: write
+
+# Garante que apenas um deploy rode por vez
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -17,19 +23,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Define o que será publicado. 
-          # Se você quiser publicar tudo na raiz, mantenha '.'
-          # Se quiser segurança extra, pode mover os HTML/JS para uma pasta /public e mudar aqui.
-          path: '.' 
+          # Faz o upload de todos os arquivos da raiz
+          path: '.'
 
       - name: Deploy to GitHub Pages
         id: deployment
