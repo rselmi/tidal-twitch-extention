@@ -4,181 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- TAGS PARA EVITAR CACHE AGRESSIVO (Garante que a Twitch veja mudanças) -->
+    <!-- FORÇAR A TWITCH A IGNORAR O CACHE -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
-    <title>Tidal Now Playing - Sidebar Overlay</title>
+    <title>Tidal Now Playing - Teste de Cache</title>
     <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
             --text-main: #ffffff;
-            --text-shadow: 0 4px 15px rgba(0,0,0,1);
-            /* Define a largura da barra lateral (aprox. 1/3 da tela) */
             --sidebar-width: 33vw; 
         }
 
-        /* Reset para Transparência Total e Ocupação de Tela */
         html, body {
             background: transparent !important;
-            background-color: transparent !important;
             color: var(--text-main);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
             overflow: hidden; 
-            height: 100vh;
-            width: 100vw;
-            box-sizing: border-box;
-            border: none !important;
         }
 
-        /* O Container é a Coluna Lateral Fixa */
         #player-container {
-            display: none; /* Exibido via JS ao receber dados */
-            background: rgba(0, 0, 0, 0.2) !important; 
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            
+            display: none;
+            background: rgba(0, 0, 0, 0.4) !important; 
+            backdrop-filter: blur(15px);
             width: var(--sidebar-width); 
             height: 100vh; 
             position: absolute;
             left: 0;
             top: 0;
-            
             padding: 60px 20px;
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
-            transition: opacity 0.5s ease;
-            opacity: 0;
-            
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: none;
         }
 
         #player-container.visible {
             display: flex;
-            opacity: 1;
-        }
-
-        #player-container::-webkit-scrollbar {
-            width: 0;
-            background: transparent;
-        }
-
-        /* ESTILO DOS CARDS */
-        .track-card {
-            display: flex;
-            flex-direction: column; 
-            align-items: center;
-            text-align: center;
-            width: 100%;
-            flex-shrink: 0;
-            margin-bottom: 70px;
-        }
-
-        .album-art {
-            width: 85%;
-            max-width: 380px;
-            aspect-ratio: 1 / 1;
-            border-radius: 15px;
-            object-fit: cover;
-            border: 3px solid var(--primary-color);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-            margin-bottom: 25px;
-        }
-
-        .title-text {
-            font-size: 32px;
-            font-weight: 900;
-            margin: 0;
-            line-height: 1.1;
-            text-shadow: var(--text-shadow);
-            width: 90%;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .artist-text {
-            font-size: 20px;
-            color: var(--primary-color);
-            font-weight: 600;
-            text-transform: uppercase;
-            margin: 12px 0 0 0;
-            text-shadow: var(--text-shadow);
-            letter-spacing: 1px;
         }
 
         .history-label {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 800;
-            color: rgba(255,255,255,0.3);
+            color: #ff0055; /* Cor temporária para teste visual */
             text-transform: uppercase;
             letter-spacing: 5px;
-            margin-bottom: 40px;
-            text-shadow: var(--text-shadow);
+            margin-top: 30px;
         }
 
-        #history-list {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .history-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            margin-bottom: 70px; 
-            width: 100%;
-            opacity: 0.6; 
-            transition: opacity 0.3s ease;
-        }
-
-        /* Tag de Versão para Debug */
-        #version-tag {
+        /* TAG DE VERSÃO VISÍVEL */
+        #version-debug-tag {
             position: fixed;
-            bottom: 10px;
+            top: 10px;
             right: 10px;
-            font-size: 9px;
-            color: rgba(255,255,255,0.2);
-            z-index: 100;
+            background: #ff0055;
+            color: white;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 5px;
+            z-index: 9999;
         }
     </style>
 </head>
 <body>
 
-    <div id="version-tag">Iniciando...</div>
+    <!-- Se esta tag aparecer como VER_2.0_PREVIEWS, o HTML atualizou -->
+    <div id="version-debug-tag">ID: AGUARDANDO...</div>
 
     <div id="player-container">
-        <!-- Música Principal (Topo da Coluna) -->
-        <div class="now-playing track-card">
-            <img id="album-art" class="album-art" src="https://via.placeholder.com/400/000000/00f3ff?text=Tidal" alt="Capa Atual">
-            <h1 id="track-title" class="title-text">Aguardando Tidal...</h1>
-            <h2 id="artist-name" class="artist-text">Sincronizando</h2>
+        <div class="now-playing">
+            <h1 id="track-title">Sincronizando...</h1>
         </div>
 
-        <div class="history-label">Previous</div>
+        <div class="history-label">PREVIOUS</div>
         
-        <!-- Lista de Histórico -->
         <div id="history-list"></div>
     </div>
 
     <script>
-        // Log de Versão para confirmar o Deploy no Console (F12)
-        const buildTime = new Date().toLocaleTimeString();
-        document.getElementById('version-tag').innerText = "Build: " + buildTime;
-        console.log("Interface da Sidebar carregada às: " + buildTime);
+        // ESTA CONSTANTE É O QUE VALIDA O DEPLOY
+        const DEPLOY_VERSION = "VER_2.0_PREVIEWS"; 
+        const BROWSER_LOAD_TIME = new Date().toLocaleTimeString();
 
-        // O restante da lógica está no viewer.js
+        document.getElementById('version-debug-tag').innerText = "ID: " + DEPLOY_VERSION;
+        
+        console.log(">>> [CONTROLE DE VERSÃO HTML] <<<");
+        console.log("ID DA VERSÃO NO ARQUIVO: " + DEPLOY_VERSION);
+        console.log("HORA QUE O BROWSER EXECUTOU: " + BROWSER_LOAD_TIME);
+        console.log(">>> SE O ID NÃO FOR '" + DEPLOY_VERSION + "', O CACHE ESTÁ ATIVO <<<");
     </script>
     <script src="viewer.js"></script>
 </body>
