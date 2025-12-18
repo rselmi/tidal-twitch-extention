@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tidal Now Playing - Final Transparent Overlay</title>
+    
+    <!-- TAGS PARA EVITAR CACHE AGRESSIVO (Garante que a Twitch veja mudanças) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <title>Tidal Now Playing - Sidebar Overlay</title>
     <script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
     <style>
         :root {
             --primary-color: #00f3ff;
             --text-main: #ffffff;
             --text-shadow: 0 4px 15px rgba(0,0,0,1);
-            /* Largura da sua barra lateral (1/3 da tela aproximadamente) */
+            /* Define a largura da barra lateral (aprox. 1/3 da tela) */
             --sidebar-width: 33vw; 
         }
 
-        /* Reset para Transparência Total */
+        /* Reset para Transparência Total e Ocupação de Tela */
         html, body {
             background: transparent !important;
             background-color: transparent !important;
@@ -22,36 +28,36 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Impede scroll na tela cheia */
+            overflow: hidden; 
             height: 100vh;
             width: 100vw;
             box-sizing: border-box;
             border: none !important;
         }
 
-        /* O Container agora é a "Coluna Lateral" */
+        /* O Container é a Coluna Lateral Fixa */
         #player-container {
-            display: none; /* Ativado via JS */
-            background: rgba(0, 0, 0, 0.2) !important; /* Fundo sutil para contraste, opcional */
-            backdrop-filter: blur(5px); /* Efeito opcional para separar do jogo */
+            display: none; /* Exibido via JS ao receber dados */
+            background: rgba(0, 0, 0, 0.2) !important; 
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             
-            /* Posicionamento: 100% de altura e largura proporcional */
             width: var(--sidebar-width); 
             height: 100vh; 
             position: absolute;
             left: 0;
             top: 0;
             
-            padding: 40px 20px;
+            padding: 60px 20px;
             flex-direction: column;
             align-items: center;
             box-sizing: border-box;
             transition: opacity 0.5s ease;
             opacity: 0;
             
-            /* Permite scroll se o histórico for longo */
             overflow-y: auto;
             overflow-x: hidden;
+            scrollbar-width: none;
         }
 
         #player-container.visible {
@@ -59,9 +65,9 @@
             opacity: 1;
         }
 
-        /* Estilo para esconder a barra de scroll mas permitir rolar */
         #player-container::-webkit-scrollbar {
             width: 0;
+            background: transparent;
         }
 
         /* ESTILO DOS CARDS */
@@ -72,24 +78,22 @@
             text-align: center;
             width: 100%;
             flex-shrink: 0;
-            margin-bottom: 60px;
+            margin-bottom: 70px;
         }
 
-        /* IMAGEM DA CAPA - Agora Responsiva à largura da sidebar */
         .album-art {
-            width: 85%; /* Ocupa 85% da largura da sidebar */
+            width: 85%;
             max-width: 380px;
             aspect-ratio: 1 / 1;
             border-radius: 15px;
             object-fit: cover;
             border: 3px solid var(--primary-color);
-            box-shadow: 0 20px 60px rgba(0,0,0,1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
             margin-bottom: 25px;
         }
 
-        /* TEXTOS */
         .title-text {
-            font-size: 32px; /* Reduzi levemente para caber na coluna */
+            font-size: 32px;
             font-weight: 900;
             margin: 0;
             line-height: 1.1;
@@ -106,19 +110,18 @@
             color: var(--primary-color);
             font-weight: 600;
             text-transform: uppercase;
-            margin: 10px 0 0 0;
+            margin: 12px 0 0 0;
             text-shadow: var(--text-shadow);
             letter-spacing: 1px;
         }
 
-        /* RÓTULO DO HISTÓRICO */
         .history-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 800;
             color: rgba(255,255,255,0.3);
             text-transform: uppercase;
-            letter-spacing: 4px;
-            margin-bottom: 30px;
+            letter-spacing: 5px;
+            margin-bottom: 40px;
             text-shadow: var(--text-shadow);
         }
 
@@ -129,35 +132,54 @@
             align-items: center;
         }
 
-        /* ITEM DO HISTÓRICO: Opacidade 70% */
         .history-item {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            margin-bottom: 60px; 
+            margin-bottom: 70px; 
             width: 100%;
-            opacity: 0.7; 
+            opacity: 0.6; 
             transition: opacity 0.3s ease;
+        }
+
+        /* Tag de Versão para Debug */
+        #version-tag {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 9px;
+            color: rgba(255,255,255,0.2);
+            z-index: 100;
         }
     </style>
 </head>
 <body>
 
+    <div id="version-tag">Iniciando...</div>
+
     <div id="player-container">
-        <!-- Música Principal -->
+        <!-- Música Principal (Topo da Coluna) -->
         <div class="now-playing track-card">
-            <img id="album-art" class="album-art" src="" alt="Capa Atual">
-            <h1 id="track-title" class="title-text">Sincronizando...</h1>
-            <h2 id="artist-name" class="artist-text">Tidal</h2>
+            <img id="album-art" class="album-art" src="https://via.placeholder.com/400/000000/00f3ff?text=Tidal" alt="Capa Atual">
+            <h1 id="track-title" class="title-text">Aguardando Tidal...</h1>
+            <h2 id="artist-name" class="artist-text">Sincronizando</h2>
         </div>
 
         <div class="history-label">Previous</div>
         
-        <!-- Lista de Histórico (Injetada pelo viewer.js) -->
+        <!-- Lista de Histórico -->
         <div id="history-list"></div>
     </div>
 
+    <script>
+        // Log de Versão para confirmar o Deploy no Console (F12)
+        const buildTime = new Date().toLocaleTimeString();
+        document.getElementById('version-tag').innerText = "Build: " + buildTime;
+        console.log("Interface da Sidebar carregada às: " + buildTime);
+
+        // O restante da lógica está no viewer.js
+    </script>
     <script src="viewer.js"></script>
 </body>
 </html>
