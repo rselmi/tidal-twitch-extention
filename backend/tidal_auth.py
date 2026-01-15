@@ -1,100 +1,72 @@
-import http.server
-import socketserver
-import webbrowser
 import requests
-import base64
-import hashlib
-import secrets
-import string
-import json
-from urllib.parse import urlparse, parse_qs, quote
+import time
 
 # =================================================================
-# CONFIGURAÇÃO - PORTAL TIDAL DEVELOPER
+# DADOS DO SEU NOVO APP (5TgBdjmTB9CStJ2G)
 # =================================================================
-CLIENT_ID = 'jbkZUHICf6RZRXN5'
-CLIENT_SECRET = 'YNfilqaPUAFuTLiw8eGFNFBebOBH2r7AgObAj3GANCA='
-REDIRECT_URI = 'http://localhost:8080'
+CLIENT_ID = '5TgBdjmTB9CStJ2G'
+CLIENT_SECRET = 'FC3Wu4WAfl1dowXuCeYQnT5z3ukmZy3EIi0vm7r3IKo='
 
-AUTH_ENDPOINT = "https://login.tidal.com/authorize"
-TOKEN_ENDPOINT = "https://auth.tidal.com/v1/oauth2/token"
+def run_device_flow():
+    print("\n" + "="*60)
+    print(" 🚀 TENTATIVA FINAL: DEVICE FLOW (SEM REDIRECT URI)")
+    print(" Este método ignora o navegador e fala direto com a API.")
+    print("="*60)
 
-def generate_pkce():
-    """Gera PKCE RFC 7636 - O segredo para o Tidal aceitar o App Web."""
-    # Verifier precisa ter entre 43 e 128 caracteres
-    verifier = secrets.token_urlsafe(64) 
-    sha256_hash = hashlib.sha256(verifier.encode('ascii')).digest()
-    # Remove padding '=' para evitar erro 'Algo deu errado'
-    challenge = base64.urlsafe_b64encode(sha256_hash).decode('ascii').rstrip('=')
-    return verifier, challenge
+    # 1. Solicitar código do dispositivo
+    # Note que NÃO enviamos redirect_uri aqui
+    auth_url = "https://auth.tidal.com/v1/oauth2/device_authorization"
+    payload = {
+        'client_id': CLIENT_ID,
+        'scope': 'playlists.read playlists.write user.read offline_access'
+    }
 
-CODE_VERIFIER, CODE_CHALLENGE = generate_pkce()
+    try:
+        resp = requests.post(auth_url, data=payload)
+        if resp.status_code != 200:
+            print(f"❌ O Tidal rejeitou a chave: {resp.status_code}")
+            print(f"Resposta: {resp.text}")
+            return
 
-class TidalAuthHandler(http.server.BaseHTTPRequestHandler):
-    def log_message(self, format, *args): return
-    
-    def do_GET(self):
-        query_data = parse_qs(urlparse(self.path).query)
+        data = resp.json()
+        user_code = data['user_code']
+        device_code = data['device_code']
+        # Link direto para você digitar o código
+        verify_url = f"https://{data['verification_uri_complete']}"
         
-        if 'code' in query_data:
-            auth_code = query_data['code'][0]
-            print(f"\n[+] Código recebido. Trocando por Token...")
+        print(f"\n[!] PASSO 1: Acesse este link agora:\n{verify_url}")
+        print(f"\n[!] PASSO 2: Confirme se o código no site é: {user_code}")
+        
+        # 2. Polling (esperando você autorizar no site)
+        token_url = "https://auth.tidal.com/v1/oauth2/token"
+        poll_payload = {
+            'client_id': CLIENT_ID,
+            'client_secret': CLIENT_SECRET,
+            'device_code': device_code,
+            'grant_type': 'urn:ietf:params:oauth:grant-type:device_code'
+        }
 
-            # Para Web Apps, enviamos Secret + Verifier
-            payload = {
-                'grant_type': 'authorization_code',
-                'code': auth_code,
-                'redirect_uri': REDIRECT_URI,
-                'client_id': CLIENT_ID,
-                'client_secret': CLIENT_SECRET,
-                'code_verifier': CODE_VERIFIER
-            }
+        print("\n[AGUARDANDO...] Aguardando você autorizar no navegador...")
+        while True:
+            r_token = requests.post(token_url, data=poll_payload)
+            d_token = r_token.json()
+
+            if r_token.status_code == 200:
+                print("\n" + "⭐"*40)
+                print("✅ SUCESSO! TOKEN GERADO:")
+                print(d_token['refresh_token'])
+                print("⭐"*40)
+                break
             
-            try:
-                response = requests.post(TOKEN_ENDPOINT, data=payload)
-                result = response.json()
-                
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html; charset=utf-8')
-                self.end_headers()
-                
-                if 'refresh_token' in result:
-                    print("\n" + "✅"*20)
-                    print("SUCESSO! COPIE O REFRESH TOKEN:")
-                    print(result['refresh_token'])
-                    print("✅"*20)
-                    
-                    self.wfile.write(b"<h1>Sucesso! Verifique o console.</h1>")
-                else:
-                    print(f"❌ Erro na troca: {json.dumps(result)}")
-                    self.wfile.write(b"<h1>Erro na troca do token.</h1>")
-            except Exception as e:
-                print(f"❌ Falha: {e}")
-        
-        self.send_response(200)
-        self.end_headers()
+            error = d_token.get('error')
+            if error == 'authorization_pending':
+                time.sleep(5)
+            else:
+                print(f"❌ Erro: {d_token}")
+                break
 
-def run():
-    # REMOVIDO: offline_access (Muitas vezes causa o erro 'Algo deu errado' em Web Apps)
-    # REMOVIDO: state (Para simplificar a validação do servidor)
-    scopes = "playlists.read playlists.write"
-    
-    login_url = (
-        f"{AUTH_ENDPOINT}?"
-        f"client_id={CLIENT_ID}&"
-        f"redirect_uri={quote(REDIRECT_URI)}&"
-        f"scope={quote(scopes)}&"
-        f"response_type=code&"
-        f"code_challenge_method=S256&"
-        f"code_challenge={CODE_CHALLENGE}"
-    )
-    
-    print(f"\n[!] Abrindo login do Tidal...")
-    print(f"[IMPORTANTE] Use uma JANELA ANONIMA se o erro persistir.")
-    webbrowser.open(login_url)
-    
-    with socketserver.TCPServer(("", 8080), TidalAuthHandler) as httpd:
-        httpd.handle_request()
+    except Exception as e:
+        print(f"❌ Falha crítica: {e}")
 
 if __name__ == "__main__":
-    run()
+    run_device_flow()

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidal Auth Debug</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #111; color: white; }
+        .card { background: #222; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); text-align: center; }
+        button { background: #00ffd0; color: #000; border: none; padding: 1rem 2rem; font-size: 1.1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 1rem; }
+        button:hover { background: #00ccaa; }
+        code { background: #333; padding: 0.2rem 0.5rem; border-radius: 4px; color: #ffcc00; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Tidal Auth - Teste Definitivo</h2>
+        <p>Este teste usa um link estático para eliminar erros de script.</p>
+        <p>App ID: <code>5TgBdjmTB9CStJ2G</code></p>
+        
+        <!-- URL construída manualmente com os escopos padrão que costumam funcionar -->
+        <a id="authLink" href="#">
+            <button onclick="generateLink()">TENTAR AUTORIZAR</button>
+        </a>
+    </div>
+
+    <script>
+        function generateLink() {
+            const clientId = "5TgBdjmTB9CStJ2G";
+            const redirectUri = "http://localhost:8080";
+            // Tentando o escopo mais básico possível primeiro
+            const scope = "playlists.write user.read offline_access";
+            
+            const url = `https://login.tidal.com/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code`;
+            
+            console.log("URL Gerada:", url);
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>
