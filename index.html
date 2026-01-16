@@ -24,7 +24,7 @@
 
         #player-container {
             display: flex;
-            background: rgba(0, 0, 0, 0.7) !important;
+            background: rgba(0, 0, 0, 0.5) !important;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             width: var(--sidebar-width);
@@ -38,6 +38,7 @@
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateX(-100%);
             border-right: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0px 30px 30px 0px;
         }
 
         #player-container.visible {
