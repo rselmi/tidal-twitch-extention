@@ -1,26 +1,59 @@
-const twitch = window.Twitch.ext;
+// Identifica se estamos na Twitch
+const twitch = (window.Twitch && window.Twitch.ext) ? window.Twitch.ext : null;
 let history = [];
+let currentTrackName = "";
 
-twitch.onAuthorized((auth) => {
-    console.log("TidalWave: Autorizado");
-});
+// --- CONFIGURAÇÃO ---
+// Insira aqui a URL da sua Cloud Function após o deploy
+const BACKEND_URL = "https://tidal-twitch-ebs-444035856400.southamerica-east1.run.app";
 
-twitch.listen('broadcast', (target, contentType, message) => {
-    try {
-        const data = JSON.parse(message);
-        console.log("Mensagem recebida:", data);
+// 1. LÓGICA TWITCH (ORIGINAL DO SEU ZIP)
+if (twitch) {
+    twitch.onAuthorized((auth) => {
+        console.log("TidalWave: Autorizado na Twitch");
+    });
 
-        const container = document.getElementById('player-container');
-        
-        // Se a mensagem for vazia, esconde o overlay
-        if (!data.track || data.track === "") {
-            container.classList.remove('visible');
-            return;
+    twitch.listen('broadcast', (target, contentType, message) => {
+        try {
+            const data = JSON.parse(message);
+            updateOverlayUI(data);
+        } catch (e) {
+            console.error("Erro ao processar PubSub:", e);
         }
+    });
+}
 
-        // Se for uma música nova (diferente da atual)
-        const currentTitle = document.getElementById('track-title').innerText;
-        if (data.track !== currentTitle && currentTitle !== "") {
+// 2. LÓGICA UNIVERSAL (KICK / OBS)
+if (!twitch || !window.frameElement) {
+    console.log("TidalWave: Modo Universal Ativado");
+    
+    async function pollMusic() {
+        try {
+            const response = await fetch(BACKEND_URL);
+            const data = await response.json();
+            updateOverlayUI(data);
+        } catch (e) {
+            console.error("Erro no Polling:", e);
+        }
+    }
+
+    setInterval(pollMusic, 5000);
+    pollMusic();
+}
+
+// 3. LÓGICA DE INTERFACE (SUA LÓGICA ORIGINAL)
+function updateOverlayUI(data) {
+    const container = document.getElementById('player-container');
+    
+    if (!data.track || data.track === "") {
+        container.classList.remove('visible');
+        currentTrackName = "";
+        return;
+    }
+
+    if (data.track !== currentTrackName) {
+        // Histórico
+        if (currentTrackName !== "") {
             updateHistory({
                 track: document.getElementById('track-title').innerText,
                 artist: document.getElementById('artist-name').innerText,
@@ -28,22 +61,18 @@ twitch.listen('broadcast', (target, contentType, message) => {
             });
         }
 
-        // Atualiza o Card Principal
+        // Atualização dos elementos (IDs mantidos do seu HTML)
         document.getElementById('track-title').innerText = data.track;
         document.getElementById('artist-name').innerText = data.artist;
         document.getElementById('album-art').src = data.image || 'https://via.placeholder.com/300/111/00f3ff?text=Tidal';
         
+        currentTrackName = data.track;
         container.classList.add('visible');
-
-    } catch (e) {
-        console.error("Erro ao processar PubSub:", e);
     }
-});
+}
 
 function updateHistory(oldTrack) {
-    // Adiciona ao início do array
     history.unshift(oldTrack);
-    // Mantém apenas as últimas 3
     if (history.length > 3) history.pop();
 
     const list = document.getElementById('history-list');

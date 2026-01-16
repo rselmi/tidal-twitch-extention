@@ -1,0 +1,44 @@
+collection.read (Read access to a user's "My Collection".)
+
+collection.write (Write access to a user's "My Collection".)
+
+playlists.read (Required to list playlists created by a user.)
+
+playlists.write (Write access to a user's playlists.)
+
+playback (Required to play media content and control playback.)
+
+user.read (Read access to a user's account information, such as country and email address.)
+
+recommendations.read (Read access to a user’s personal recommendations.)
+
+entitlements.read (Read access to what functionality a user is entitled to access on TIDAL, such as whether they can stream music, use DJ add-ons and similar.)
+
+search.read (Required to read personalized search results.)
+
+search.write (Required to update personalized search results, e.g. delete search history.)
+
+Auth_v2
+CLIENT_ID = 'C7PjfLUdIyOJomaA'
+CLIENT_SECRET = 'ZGwKE9lK29JSz9oyvklhrFYJPmh90Zmn5X1U9AVgWf4='
+
+Auth_v3
+CLIENT_ID = 'EfccOGFfZelf7KQg'
+CLIENT_SECRET = 'nu3zUdBnxMXhYUb72eZ5y3vwYUw1f6Y2Bu0FFTmkCLg='
+REFRESH_TOKEN = 'eyJraWQiOiJoUzFKYTdVMCIsImFsZyI6IkVTNTEyIn0.eyJ0eXBlIjoibzJfcmVmcmVzaCIsInVpZCI6NDA3NjkwMjksInNjb3BlIjoic2VhcmNoLndyaXRlIHVzZXIucmVhZCBwbGF5bGlzdHMucmVhZCBzZWFyY2gucmVhZCBwbGF5YmFjayBwbGF5bGlzdHMud3JpdGUiLCJjaWQiOjIzNDQ1LCJzVmVyIjoxLCJnVmVyIjowLCJ1Z3YiOjAsImlzcyI6Imh0dHBzOi8vYXV0aC50aWRhbC5jb20vdjEifQ.AHcM7mVxYuYZll-NDKIOQ0n2RZo-7g0uJAa2hvBNob1Fo8xNI6VM-FEWMeeoGqVcb2P3-rpVmgGdgT3NCy1_3fEnAZmuCoaC9vIIsyAYZ4k6_hXvEgBDm8eEwcOPLxeGn8_LUC8DZM3eWHtS4X0fXjnpAdmLknpFNq2QxTV5nHlS-pJn'
+
+NGrok
+
+Authtoken: 38GT9PWA7LoPLxC1H4sna9vvGDk_59nVqokeJtCJuzbbwEi38
+
+Secret keys
+SHKRZX5VNN
+88SUUV7MAM
+2S9GRCFC32
+ZM232396V3
+TVAGYAM7R4
+KMTX74A7HA
+HJGTMJFKAR
+RXBCMGBRMM
+BJ2SFFJ7JC
+W57MJ4YJMK

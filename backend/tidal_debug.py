@@ -5,9 +5,9 @@ import json
 # =================================================================
 # CONFIGURAÇÃO - USE AS MESMAS CREDENCIAIS DO SCRIPT DE AUTH
 # =================================================================
-CLIENT_ID = 'C7PjfLUdIyOJomaA'
-CLIENT_SECRET = 'ZGwKE9lK29JSz9oyvklhrFYJPmh90Zmn5X1U9AVgWf4='
-REFRESH_TOKEN = 'eyJraWQiOiJoUzFKYTdVMCIsImFsZyI6IkVTNTEyIn0.eyJ0eXBlIjoibzJfcmVmcmVzaCIsInVpZCI6NDA3NjkwMjksInNjb3BlIjoicGxheWxpc3RzLndyaXRlIHBsYXlsaXN0cy5yZWFkIHVzZXIucmVhZCIsImNpZCI6MjM0MTMsInNWZXIiOjEsImdWZXIiOjAsInVndiI6MCwiaXNzIjoiaHR0cHM6Ly9hdXRoLnRpZGFsLmNvbS92MSJ9.AHDh9cWQ9WGRwcBXNn7XrCDqiIIcjqbr2NfjHE8KiB4vG2jrTMq8Fn1nnBFKvy1ZUVkwIhVbLp4WYo_10O8BzRkkAC8G98rk41JsQy6JQVWL7CsNNJQAE9sxULF7E5neZDXnZbT7im4ArwMA3xwioMco_Lq1y1lSn51Ayc7LmQ1Pw1sN'
+CLIENT_ID = 'EfccOGFfZelf7KQg'
+CLIENT_SECRET = 'nu3zUdBnxMXhYUb72eZ5y3vwYUw1f6Y2Bu0FFTmkCLg='
+REFRESH_TOKEN = 'eyJraWQiOiJoUzFKYTdVMCIsImFsZyI6IkVTNTEyIn0.eyJ0eXBlIjoibzJfcmVmcmVzaCIsInVpZCI6NDA3NjkwMjksInNjb3BlIjoic2VhcmNoLndyaXRlIHVzZXIucmVhZCBwbGF5bGlzdHMucmVhZCBzZWFyY2gucmVhZCBwbGF5YmFjayBwbGF5bGlzdHMud3JpdGUiLCJjaWQiOjIzNDQ1LCJzVmVyIjoxLCJnVmVyIjowLCJ1Z3YiOjAsImlzcyI6Imh0dHBzOi8vYXV0aC50aWRhbC5jb20vdjEifQ.AHcM7mVxYuYZll-NDKIOQ0n2RZo-7g0uJAa2hvBNob1Fo8xNI6VM-FEWMeeoGqVcb2P3-rpVmgGdgT3NCy1_3fEnAZmuCoaC9vIIsyAYZ4k6_hXvEgBDm8eEwcOPLxeGn8_LUC8DZM3eWHtS4X0fXjnpAdmLknpFNq2QxTV5nHlS-pJn'
 
 def verify_scopes():
     print("\n" + "="*60)
