@@ -1,3 +1,13 @@
+premissas gemini
+
+1. não alucinar, não ser ansioso
+2. não ficar reescrevendo códigos a toda interação
+3. sempre refletir, pesquisar e refletir novamente antes de tomar decisões sobre lógicas de programação e escrita de classes e códigos
+4. sempre nomear em comentários as VERSÕES e o NOME de cada arquivo de código editado
+5. levar em consideração a organização do fluxo de desenvolvimento do projeto, definindo marcos consolidados de soluções de bugs e/ou problemas para que possam ser consultados e restaurados futuramente
+
+---
+
 collection.read (Read access to a user's "My Collection".)
 
 collection.write (Write access to a user's "My Collection".)
