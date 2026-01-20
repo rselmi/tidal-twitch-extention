@@ -1,63 +1,50 @@
-/**
- * PROJETO: TidalWave Overlay Viewer
- * VERSÃO: 2.1.0
- * DESCRIÇÃO: Frontend híbrido para exibição de música tocando. 
- * Suporta PubSub (Twitch) e Polling (Kick/OBS).
- * MARCO: Estabilização de Interface Universal
- */
-
+// Identifica se estamos na Twitch
 const twitch = (window.Twitch && window.Twitch.ext) ? window.Twitch.ext : null;
 let history = [];
 let currentTrackName = "";
 
-// URL para Polling (Substitua pela sua URL de trigger da Function)
-const BACKEND_URL = "https://us-central1-rselmi-bot.cloudfunctions.net/checkMusic";
+// --- CONFIGURAÇÃO ---
+// Insira aqui a URL da sua Cloud Function após o deploy
+const BACKEND_URL = "https://tidal-twitch-ebs-444035856400.southamerica-east1.run.app";
 
-/**
- * Inicialização - Twitch PubSub
- */
+// 1. LÓGICA TWITCH (ORIGINAL DO SEU ZIP)
 if (twitch) {
     twitch.onAuthorized((auth) => {
-        console.log("v2.1.0: Twitch Autorizada");
+        console.log("TidalWave: Autorizado na Twitch");
     });
 
     twitch.listen('broadcast', (target, contentType, message) => {
         try {
             const data = JSON.parse(message);
-            updateUI(data);
+            updateOverlayUI(data);
         } catch (e) {
-            console.error("Erro PubSub:", e);
+            console.error("Erro ao processar PubSub:", e);
         }
     });
 }
 
-/**
- * Inicialização - Modo Universal (Polling)
- * Ativado para OBS, Kick e como segurança na Twitch
- */
-async function pollStatus() {
-    try {
-        const response = await fetch(BACKEND_URL);
-        if (response.ok) {
+// 2. LÓGICA UNIVERSAL (KICK / OBS)
+if (!twitch || !window.frameElement) {
+    console.log("TidalWave: Modo Universal Ativado");
+    
+    async function pollMusic() {
+        try {
+            const response = await fetch(BACKEND_URL);
             const data = await response.json();
-            updateUI(data);
+            updateOverlayUI(data);
+        } catch (e) {
+            console.error("Erro no Polling:", e);
         }
-    } catch (e) {
-        console.log("Polling: Backend offline ou aguardando.");
     }
+
+    setInterval(pollMusic, 5000);
+    pollMusic();
 }
 
-// Executa polling a cada 5 segundos se não estivermos recebendo PubSub de forma ativa
-setInterval(pollStatus, 5000);
-pollStatus();
-
-/**
- * Atualiza os elementos visuais na tela
- */
-function updateUI(data) {
+// 3. LÓGICA DE INTERFACE (SUA LÓGICA ORIGINAL)
+function updateOverlayUI(data) {
     const container = document.getElementById('player-container');
-    if (!container) return;
-
+    
     if (!data.track || data.track === "") {
         container.classList.remove('visible');
         currentTrackName = "";
@@ -65,17 +52,16 @@ function updateUI(data) {
     }
 
     if (data.track !== currentTrackName) {
-        // Gerencia Histórico se música mudou
+        // Histórico
         if (currentTrackName !== "") {
-            const oldTrack = {
+            updateHistory({
                 track: document.getElementById('track-title').innerText,
                 artist: document.getElementById('artist-name').innerText,
                 image: document.getElementById('album-art').src
-            };
-            manageHistory(oldTrack);
+            });
         }
 
-        // Atualiza novos dados
+        // Atualização dos elementos (IDs mantidos do seu HTML)
         document.getElementById('track-title').innerText = data.track;
         document.getElementById('artist-name').innerText = data.artist;
         document.getElementById('album-art').src = data.image || 'https://via.placeholder.com/300/111/00f3ff?text=Tidal';
@@ -85,14 +71,13 @@ function updateUI(data) {
     }
 }
 
-function manageHistory(track) {
-    history.unshift(track);
+function updateHistory(oldTrack) {
+    history.unshift(oldTrack);
     if (history.length > 3) history.pop();
 
     const list = document.getElementById('history-list');
-    if (!list) return;
-
     list.innerHTML = "";
+
     history.forEach(item => {
         const div = document.createElement('div');
         div.className = 'history-item';

@@ -1,16 +1,6 @@
-/**
- * PROJETO: TidalWave Multi-Platform Bot
- * VERSÃO: 2.1.0
- * DESCRIÇÃO: Backend consolidado para Cloud Functions. 
- * Gerencia sincronização Last.fm -> Twitch PubSub e 
- * recebe pedidos de música para o Tidal (DJ Mode).
- * MARCO: Integração Universal (Twitch + Kick + OBS)
- */
-
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
-// Função auxiliar para leitura de variáveis de ambiente
 const getEnv = (key) => (process.env[key] || "").trim();
 
 const CONFIG = {
@@ -19,133 +9,122 @@ const CONFIG = {
   TWITCH_CLIENT_ID: getEnv('TWITCH_CLIENT_ID'),
   TWITCH_EXTENSION_SECRET: getEnv('TWITCH_EXTENSION_SECRET'),
   TWITCH_CHANNEL_ID: getEnv('TWITCH_CHANNEL_ID'),
+  // Novas Configurações Kick
+  KICK_CHANNEL_NAME: getEnv('KICK_CHANNEL_NAME'), // ex: 'meucanal'
+  KICK_CHANNEL_ID: getEnv('KICK_CHANNEL_ID'),
+  // Tidal DJ Mode
   TIDAL_CLIENT_ID: getEnv('TIDAL_CLIENT_ID'),
-  TIDAL_CLIENT_SECRET: getEnv('TIDAL_CLIENT_SECRET'),
   TIDAL_REFRESH_TOKEN: getEnv('TIDAL_REFRESH_TOKEN'),
   TIDAL_PLAYLIST_ID: getEnv('TIDAL_PLAYLIST_ID')
 };
 
-/**
- * Ponto de entrada principal da Cloud Function
- */
 exports.checkMusic = async (req, res) => {
-  // Configuração de CORS para chamadas externas (Painel Twitch e Kick)
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).send('');
+  // --- INSERÇÃO PARA SUPORTE KICK/UNIVERSAL (CORS) ---
+  if (res && res.set) {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.status(204).send('');
   }
 
+  console.log("🚀 [INÍCIO] v2.0.0 - Suporte Multi-Plataforma");
+
+  let trackToRequest = null;
   try {
-    // LÓGICA DJ MODE (Se houver pedido no corpo da requisição)
-    const trackRequest = req.body?.requestTrack;
-    if (trackRequest) {
-      console.log(`[DJ Mode] Pedido recebido: ${trackRequest}`);
-      await handleDjRequest(trackRequest);
-      return res.status(200).json({ success: true, message: "Pedido enviado!" });
+    // Mantém sua detecção de payload original
+    const rawData = req.body || req.data || req;
+    if (rawData && rawData.requestTrack) {
+        trackToRequest = rawData.requestTrack;
+    }
+  } catch (e) { console.log("Info: Sem track no body."); }
+
+  try {
+    // 1. Sua lógica original de DJ Mode
+    if (trackToRequest) {
+      await handleDjMode(trackToRequest);
     }
 
-    // LÓGICA DE SINCRONIZAÇÃO (Padrão)
-    const musicData = await syncMusicData();
-    
-    // Retorna os dados para o Polling (usado pelo OBS/Kick)
-    return res.status(200).json(musicData);
+    // 2. Sua lógica original de Sincronização
+    const musicData = await syncLastFmToTwitch();
+
+    // 3. RETORNO HTTP (Essencial para o novo viewer.js na Kick)
+    if (res && res.status) {
+      return res.status(200).json(musicData);
+    }
+    return musicData;
 
   } catch (err) {
-    console.error(`[ERRO v2.1.0]: ${err.message}`);
-    return res.status(500).json({ error: err.message });
+    console.error("❌ Erro:", err.message);
+    if (res && res.status) return res.status(500).json({ error: err.message });
+    throw err;
   }
 };
 
-/**
- * Sincroniza Last.fm com Twitch PubSub e retorna dados atuais
- */
-async function syncMusicData() {
-  if (!CONFIG.LASTFM_API_KEY) return { track: "", artist: "", image: "" };
+async function syncLastFmToTwitch() {
+    if (!CONFIG.LASTFM_API_KEY) return null;
+    const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${CONFIG.LASTFM_USER}&api_key=${CONFIG.LASTFM_API_KEY}&format=json&limit=1`;
+    const response = await axios.get(url);
+    const track = response.data.recenttracks?.track[0];
+    const isPlaying = track?.['@attr']?.nowplaying === 'true';
+    
+    const payload = isPlaying ? { 
+        track: track.name, 
+        artist: track.artist['#text'], 
+        image: track.image[3]['#text'] || track.image[2]['#text'] 
+    } : { track: "", artist: "", image: "" };
+    
+    // Broadcast para Twitch (Sua lógica original)
+    if (CONFIG.TWITCH_EXTENSION_SECRET) {
+        const twitchToken = jwt.sign({
+            exp: Math.floor(Date.now() / 1000) + 60,
+            channel_id: CONFIG.TWITCH_CHANNEL_ID,
+            role: 'external',
+            pubsub_perms: { send: ['broadcast'] }
+        }, Buffer.from(CONFIG.TWITCH_EXTENSION_SECRET, 'base64'));
 
-  const url = `http://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${CONFIG.LASTFM_USER}&api_key=${CONFIG.LASTFM_API_KEY}&format=json&limit=1`;
-  const response = await axios.get(url);
-  const track = response.data.recenttracks?.track[0];
-  const isPlaying = track?.['@attr']?.nowplaying === 'true';
-
-  const payload = isPlaying ? {
-    track: track.name,
-    artist: track.artist['#text'],
-    image: track.image[3]?.['#text'] || track.image[2]?.['#text'] || ""
-  } : { track: "", artist: "", image: "" };
-
-  // Dispara PubSub para a Twitch se configurado
-  if (CONFIG.TWITCH_EXTENSION_SECRET && CONFIG.TWITCH_CHANNEL_ID) {
-    await sendTwitchPubSub(payload);
-  }
-
-  return payload;
+        await axios.post(`https://api.twitch.tv/helix/extensions/pubsub?target=broadcast`,
+            {
+                target: ['broadcast'],
+                broadcaster_id: CONFIG.TWITCH_CHANNEL_ID,
+                is_global_broadcast: false,
+                message: JSON.stringify(payload),
+            },
+            {
+                headers: {
+                    'Client-Id': CONFIG.TWITCH_CLIENT_ID,
+                    'Authorization': `Bearer ${twitchToken}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+        console.log("✅ Twitch PubSub enviado.");
+    }
+    
+    return payload;
 }
 
-/**
- * Envia dados para o barramento de mensagens da Twitch (PubSub)
- */
-async function sendTwitchPubSub(payload) {
-  try {
-    const token = jwt.sign({
-      exp: Math.floor(Date.now() / 1000) + 60,
-      channel_id: CONFIG.TWITCH_CHANNEL_ID,
-      role: 'external',
-      pubsub_perms: { send: ['broadcast'] }
-    }, Buffer.from(CONFIG.TWITCH_EXTENSION_SECRET, 'base64'));
-
-    await axios.post(`https://api.twitch.tv/helix/extensions/pubsub?target=broadcast`,
-      {
-        target: ['broadcast'],
-        broadcaster_id: CONFIG.TWITCH_CHANNEL_ID,
-        is_global_broadcast: false,
-        message: JSON.stringify(payload),
-      },
-      {
-        headers: {
-          'Client-Id': CONFIG.TWITCH_CLIENT_ID,
-          'Authorization': `Bearer ${twitchToken}`, // Nota: Corrigir variável no código final se necessário
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-  } catch (e) {
-    console.error("[PubSub] Falha silenciosa.");
-  }
-}
-
-/**
- * Adiciona música à playlist do Tidal via pesquisa
- */
-async function handleDjRequest(query) {
-  try {
-    // 1. Renovação de Token Tidal
-    const authParams = new URLSearchParams({
-      'client_id': CONFIG.TIDAL_CLIENT_ID,
-      'client_secret': CONFIG.TIDAL_CLIENT_SECRET,
-      'grant_type': 'refresh_token',
-      'refresh_token': CONFIG.TIDAL_REFRESH_TOKEN
-    });
-
-    const authRes = await axios.post('https://auth.tidal.com/v1/oauth2/token', authParams.toString());
-    const token = authRes.data.access_token;
-
-    // 2. Pesquisa de Faixa
-    const searchRes = await axios.get(`https://openapi.tidal.com/v2/search?query=${encodeURIComponent(query)}&type=TRACKS&limit=1`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    const trackId = searchRes.data.data[0]?.resource?.id;
-    if (!trackId) return;
-
-    // 3. Inserção na Playlist
-    await axios.post(`https://openapi.tidal.com/v2/playlists/${CONFIG.TIDAL_PLAYLIST_ID}/items`,
-      { 'resourceIds': [trackId] },
-      { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/vnd.tidal.v1+json' } }
-    );
-  } catch (err) {
-    console.error(`[DJ Mode Error]: ${err.message}`);
-  }
+async function handleDjMode(query) {
+    // Mantive sua lógica de DJ Mode idêntica ao ZIP
+    try {
+        const authRes = await axios.post('https://auth.tidal.com/v1/oauth2/token', 
+            new URLSearchParams({
+                'client_id': CONFIG.TIDAL_CLIENT_ID,
+                'client_secret': CONFIG.TIDAL_CLIENT_SECRET,
+                'grant_type': 'refresh_token',
+                'refresh_token': CONFIG.TIDAL_REFRESH_TOKEN
+            }).toString(),
+            { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+        );
+        const token = authRes.data.access_token;
+        const searchRes = await axios.get(`https://openapi.tidal.com/v2/search?query=${encodeURIComponent(query)}&type=TRACKS&limit=1`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const track = searchRes.data.data[0]?.resource;
+        if (!track) return;
+        await axios.post(`https://openapi.tidal.com/v2/playlists/${CONFIG.TIDAL_PLAYLIST_ID}/items`, 
+            { 'resourceIds': [track.id] }, 
+            { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/vnd.tidal.v1+json' } }
+        );
+        console.log(`✅ DJ Mode: "${track.title}" adicionada!`);
+    } catch (err) { console.error("❌ Erro DJ Mode:", err.message); }
 }
