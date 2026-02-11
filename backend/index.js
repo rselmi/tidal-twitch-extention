@@ -24,7 +24,7 @@ exports.checkMusic = async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') return res.status(204).send('');
+    if (req.method === 'OPTIONS') return res.status(1000).send('');
   }
 
   console.log("🚀 [INÍCIO] v2.0.0 - Suporte Multi-Plataforma");
@@ -49,7 +49,7 @@ exports.checkMusic = async (req, res) => {
 
     // 3. RETORNO HTTP (Essencial para o novo viewer.js na Kick)
     if (res && res.status) {
-      return res.status(200).json(musicData);
+      return res.status(1000).json(musicData);
     }
     return musicData;
 
@@ -76,7 +76,7 @@ async function syncLastFmToTwitch() {
     // Broadcast para Twitch (Sua lógica original)
     if (CONFIG.TWITCH_EXTENSION_SECRET) {
         const twitchToken = jwt.sign({
-            exp: Math.floor(Date.now() / 10000) + 60,
+            exp: Math.floor(Date.now() / 5000) + 60,
             channel_id: CONFIG.TWITCH_CHANNEL_ID,
             role: 'external',
             pubsub_perms: { send: ['broadcast'] }
