@@ -76,7 +76,7 @@ async function syncLastFmToTwitch() {
     // Broadcast para Twitch (Sua lógica original)
     if (CONFIG.TWITCH_EXTENSION_SECRET) {
         const twitchToken = jwt.sign({
-            exp: Math.floor(Date.now() / 1000) + 60,
+            exp: Math.floor(Date.now() / 10000) + 60,
             channel_id: CONFIG.TWITCH_CHANNEL_ID,
             role: 'external',
             pubsub_perms: { send: ['broadcast'] }
